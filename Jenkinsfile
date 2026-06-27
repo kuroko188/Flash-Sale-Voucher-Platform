@@ -9,10 +9,10 @@ pipeline {
         ECS_TASK_FAMILY   = "${env.ECS_TASK_FAMILY ?: 'flash-sale-voucher-platform-ec2'}"
         DEPLOY_TARGET     = "${env.DEPLOY_TARGET ?: 'free-tier-ec2'}"
         IMAGE_TAG         = "${env.BUILD_NUMBER ?: 'latest'}"
+        SKIP_DEPLOY       = "${env.SKIP_DEPLOY ?: 'true'}"
     }
 
     options {
-        timestamps()
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
@@ -60,7 +60,7 @@ pipeline {
 
         stage('Build Docker Image') {
             when {
-                branch 'main'
+                expression { env.SKIP_DEPLOY == 'false' }
             }
             steps {
                 script {
@@ -74,7 +74,7 @@ pipeline {
 
         stage('Push to ECR') {
             when {
-                branch 'main'
+                expression { env.SKIP_DEPLOY == 'false' }
             }
             steps {
                 sh '''
@@ -87,7 +87,7 @@ pipeline {
 
         stage('Deploy to ECS') {
             when {
-                branch 'main'
+                expression { env.SKIP_DEPLOY == 'false' }
             }
             steps {
                 script {
