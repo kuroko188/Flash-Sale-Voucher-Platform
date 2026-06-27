@@ -19,6 +19,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -27,11 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+
+import static com.hmdp.utils.RedisConstants.*;
 
 /**
  * <p>
@@ -70,15 +74,15 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @PostConstruct
     private void init() {
         running = true;
+        ensureStreamConsumerGroup();
         SECKILL_ORDER_EXECUTOR.submit(() -> {
-            String queueName = "stream.orders";
             while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     //Read order from stream
                     List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
-                            Consumer.from("g1", "c1")
+                            Consumer.from(ORDER_STREAM_GROUP, ORDER_STREAM_CONSUMER)
                             , StreamReadOptions.empty().count(1).block(Duration.ofSeconds(2))
-                            , StreamOffset.create(queueName, ReadOffset.lastConsumed())
+                            , StreamOffset.create(ORDER_STREAM_KEY, ReadOffset.lastConsumed())
                     );
                     //Check whether message was read
                     if (list==null||list.isEmpty()){
@@ -92,7 +96,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     //Create order
                     handleVoucherOrder(voucherOrder);
                     //ACK message
-                    stringRedisTemplate.opsForStream().acknowledge(queueName,"g1",record.getId());
+                    stringRedisTemplate.opsForStream().acknowledge(ORDER_STREAM_KEY, ORDER_STREAM_GROUP, record.getId());
                 } catch (IllegalStateException e) {
                     if (!running) {
                         break;
@@ -102,6 +106,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 } catch (Exception e) {
                     if (!running) {
                         break;
+                    }
+                    if (isNoGroupError(e)) {
+                        ensureStreamConsumerGroup();
+                        continue;
                     }
                     log.warn("Redis stream consumer error, retrying", e);
                     handlePendingList();
@@ -116,6 +124,40 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         });
     }
 
+    private void ensureStreamConsumerGroup() {
+        try {
+            stringRedisTemplate.execute((RedisCallback<Void>) connection -> {
+                connection.streamCommands().xGroupCreate(
+                        ORDER_STREAM_KEY.getBytes(StandardCharsets.UTF_8),
+                        ORDER_STREAM_GROUP,
+                        ReadOffset.latest(),
+                        true
+                );
+                return null;
+            });
+            log.info("Created Redis stream consumer group {} on {}", ORDER_STREAM_GROUP, ORDER_STREAM_KEY);
+        } catch (Exception e) {
+            String message = e.getMessage() == null ? "" : e.getMessage();
+            if (message.contains("BUSYGROUP")) {
+                log.debug("Redis stream consumer group already exists: {}", ORDER_STREAM_GROUP);
+                return;
+            }
+            log.warn("Failed to ensure Redis stream consumer group: {}", message);
+        }
+    }
+
+    private boolean isNoGroupError(Exception e) {
+        Throwable current = e;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("NOGROUP")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
     @PreDestroy
     private void destroy() {
         running = false;
@@ -123,14 +165,13 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     private void handlePendingList() {
-        String queueName="stream.orders";
         while (true){
             try {
                 //Read order from stream
                 List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
-                        Consumer.from("g1", "c1")
+                        Consumer.from(ORDER_STREAM_GROUP, ORDER_STREAM_CONSUMER)
                         , StreamReadOptions.empty().count(1)
-                        , StreamOffset.create(queueName, ReadOffset.from("0"))
+                        , StreamOffset.create(ORDER_STREAM_KEY, ReadOffset.from("0"))
                 );
                 //Check whether message was read
                 if (list==null||list.isEmpty()){
@@ -144,13 +185,18 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 //Create order
                 handleVoucherOrder(voucherOrder);
                 //ACK message
-                stringRedisTemplate.opsForStream().acknowledge(queueName,"g1",record.getId());
+                stringRedisTemplate.opsForStream().acknowledge(ORDER_STREAM_KEY, ORDER_STREAM_GROUP, record.getId());
             } catch (Exception e) {
-                e.printStackTrace();
+                if (isNoGroupError(e)) {
+                    ensureStreamConsumerGroup();
+                    break;
+                }
+                log.warn("Failed to process pending stream orders", e);
                 try {
                     Thread.sleep(20);
                 } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
