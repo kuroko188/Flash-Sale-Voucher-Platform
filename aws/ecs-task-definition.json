@@ -1,0 +1,45 @@
+{
+  "family": "flash-sale-voucher-platform",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "flash-sale-app",
+      "image": "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/flash-sale-voucher-platform:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8081,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "SPRING_DATASOURCE_URL", "value": "jdbc:mysql://RDS_ENDPOINT:3306/hmdp?useSSL=false&serverTimezone=UTC" },
+        { "name": "SPRING_DATASOURCE_USERNAME", "value": "root" },
+        { "name": "SPRING_DATASOURCE_PASSWORD", "value": "CHANGE_ME" },
+        { "name": "SPRING_REDIS_HOST", "value": "ELASTICACHE_ENDPOINT" },
+        { "name": "SPRING_REDIS_PORT", "value": "6379" },
+        { "name": "SPRING_REDIS_PASSWORD", "value": "CHANGE_ME" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/flash-sale-voucher-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import com.hmdp.HmDianPingApplication;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RLock;
@@ -11,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @SpringBootTest(classes = HmDianPingApplication.class)
+@Tag("integration")
 public class RedissonTest {
     @Resource
     private RedissonClient redissonClient;
