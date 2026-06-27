@@ -3,7 +3,6 @@ version: "3.8"
 services:
   mysql:
     image: mysql:5.7
-    container_name: hmdp-ci-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: hmdp
@@ -20,7 +19,6 @@ services:
 
   redis:
     image: redis:6.2
-    container_name: hmdp-ci-redis
     command: redis-server --requirepass root
     ports:
       - "6380:6379"
@@ -32,7 +30,6 @@ services:
 
   app:
     build: .
-    container_name: hmdp-ci-app
     depends_on:
       mysql:
         condition: service_healthy

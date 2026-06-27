@@ -40,7 +40,18 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 sh '''
-                    if docker compose version >/dev/null 2>&1; then
+                    export SPRING_DATASOURCE_USERNAME=root
+                    export SPRING_DATASOURCE_PASSWORD=root
+                    export SPRING_REDIS_PASSWORD=root
+
+                    if docker ps --format '{{.Names}}' | grep -qx 'mysql57' && docker ps --format '{{.Names}}' | grep -qx 'redis'; then
+                      echo "Using host mysql57/redis containers via host.docker.internal"
+                      export SPRING_DATASOURCE_URL='jdbc:mysql://host.docker.internal:3306/hmdp?useSSL=false&serverTimezone=UTC'
+                      export SPRING_REDIS_HOST=host.docker.internal
+                      export SPRING_REDIS_PORT=6379
+                    elif docker compose version >/dev/null 2>&1; then
+                      docker rm -f hmdp-ci-redis hmdp-ci-mysql hmdp-ci-app 2>/dev/null || true
+                      docker compose -f docker-compose.ci.yml down -v 2>/dev/null || true
                       docker compose -f docker-compose.ci.yml up -d mysql redis
                       for i in $(seq 1 30); do
                         docker compose -f docker-compose.ci.yml exec -T mysql mysqladmin ping -h 127.0.0.1 -proot && break
@@ -55,9 +66,7 @@ pipeline {
                       export SPRING_REDIS_HOST=host.docker.internal
                       export SPRING_REDIS_PORT=6379
                     fi
-                    export SPRING_DATASOURCE_USERNAME=root
-                    export SPRING_DATASOURCE_PASSWORD=root
-                    export SPRING_REDIS_PASSWORD=root
+
                     mvn -B test -Pintegration
                 '''
             }
