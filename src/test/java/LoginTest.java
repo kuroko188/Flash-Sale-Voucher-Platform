@@ -8,6 +8,7 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.impl.UserServiceImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,9 +35,10 @@ public class LoginTest {
     private StringRedisTemplate stringRedisTemplate;
 
     /**
-     * Generate 1000 users
+     * Manual utility: generate load-test users. Not run in CI.
      */
     @Test
+    @Disabled("Manual data seeding utility — run locally only")
     public void testGenerateUser(){
         Long phone=17600000000L;
         for (int i = 0; i < 1000; i++) {
@@ -50,12 +52,10 @@ public class LoginTest {
     }
 
     /**
-     * Login users and store tokens for seckill tests
-     * Adjust user id filter and token output path before use
-     *
-     * @throws IOException ioexception
+     * Manual utility: export JMeter tokens. Not run in CI.
      */
     @Test
+    @Disabled("Manual JMeter token export — run locally only")
     public void testLogin() throws IOException {
         LambdaQueryWrapper<User> userLambdaQueryWrapper = new LambdaQueryWrapper<>();
         userLambdaQueryWrapper.gt(true,User::getId,1011L);
