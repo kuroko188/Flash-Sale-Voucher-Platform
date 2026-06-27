@@ -1,0 +1,60 @@
+{
+  "family": "flash-sale-voucher-platform-ec2",
+  "networkMode": "bridge",
+  "requiresCompatibilities": ["EC2"],
+  "containerDefinitions": [
+    {
+      "name": "redis",
+      "image": "redis:6.2-alpine",
+      "memory": 128,
+      "essential": true,
+      "command": ["redis-server", "--requirepass", "root"],
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "hostPort": 6379,
+          "protocol": "tcp"
+        }
+      ]
+    },
+    {
+      "name": "flash-sale-app",
+      "image": "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/flash-sale-voucher-platform:latest",
+      "memory": 384,
+      "essential": true,
+      "links": ["redis:redis"],
+      "dependsOn": [
+        {
+          "containerName": "redis",
+          "condition": "START"
+        }
+      ],
+      "portMappings": [
+        {
+          "containerPort": 8081,
+          "hostPort": 8081,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "SPRING_DATASOURCE_URL",
+          "value": "jdbc:mysql://RDS_ENDPOINT:3306/hmdp?useSSL=false&serverTimezone=UTC"
+        },
+        { "name": "SPRING_DATASOURCE_USERNAME", "value": "admin" },
+        { "name": "SPRING_DATASOURCE_PASSWORD", "value": "CHANGE_ME" },
+        { "name": "SPRING_REDIS_HOST", "value": "redis" },
+        { "name": "SPRING_REDIS_PORT", "value": "6379" },
+        { "name": "SPRING_REDIS_PASSWORD", "value": "root" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/flash-sale-voucher-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
