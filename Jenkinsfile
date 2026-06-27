@@ -6,7 +6,8 @@ pipeline {
         ECR_REPOSITORY    = "${env.ECR_REPOSITORY ?: 'flash-sale-voucher-platform'}"
         ECS_CLUSTER       = "${env.ECS_CLUSTER ?: 'flash-sale-cluster'}"
         ECS_SERVICE       = "${env.ECS_SERVICE ?: 'flash-sale-service'}"
-        ECS_TASK_FAMILY   = "${env.ECS_TASK_FAMILY ?: 'flash-sale-voucher-platform'}"
+        ECS_TASK_FAMILY   = "${env.ECS_TASK_FAMILY ?: 'flash-sale-voucher-platform-ec2'}"
+        DEPLOY_TARGET     = "${env.DEPLOY_TARGET ?: 'free-tier-ec2'}"
         IMAGE_TAG         = "${env.BUILD_NUMBER ?: 'latest'}"
     }
 
@@ -44,6 +45,9 @@ pipeline {
                       docker compose -f docker-compose.ci.yml exec -T mysql mysqladmin ping -h 127.0.0.1 -proot && break
                       sleep 5
                     done
+                    SPRING_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3307/hmdp?useSSL=false&serverTimezone=UTC' \
+                    SPRING_REDIS_HOST=127.0.0.1 \
+                    SPRING_REDIS_PORT=6380 \
                     mvn -B test -Pintegration
                 '''
             }
@@ -86,15 +90,29 @@ pipeline {
                 branch 'main'
             }
             steps {
-                sh '''
-                    chmod +x scripts/deploy-ecs.sh
-                    ./scripts/deploy-ecs.sh \
-                      --region ${AWS_REGION} \
-                      --cluster ${ECS_CLUSTER} \
-                      --service ${ECS_SERVICE} \
-                      --task-family ${ECS_TASK_FAMILY} \
-                      --image ${IMAGE_URI}
-                '''
+                script {
+                    if (env.DEPLOY_TARGET == 'free-tier-ec2') {
+                        sh '''
+                            chmod +x scripts/deploy-ecs-ec2-free-tier.sh
+                            ./scripts/deploy-ecs-ec2-free-tier.sh \
+                              --region ${AWS_REGION} \
+                              --cluster ${ECS_CLUSTER} \
+                              --service ${ECS_SERVICE} \
+                              --task-family ${ECS_TASK_FAMILY} \
+                              --image ${IMAGE_URI}
+                        '''
+                    } else {
+                        sh '''
+                            chmod +x scripts/deploy-ecs.sh
+                            ./scripts/deploy-ecs.sh \
+                              --region ${AWS_REGION} \
+                              --cluster ${ECS_CLUSTER} \
+                              --service ${ECS_SERVICE} \
+                              --task-family ${ECS_TASK_FAMILY} \
+                              --image ${IMAGE_URI}
+                        '''
+                    }
+                }
             }
         }
     }
