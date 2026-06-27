@@ -1,0 +1,12 @@
+target/
+.git/
+.idea/
+*.iml
+.DS_Store
+node_modules/
+**/*.md
+scripts/
+aws/
+Jenkinsfile
+docker-compose*.yml
+.mvn/
