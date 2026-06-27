@@ -18,22 +18,22 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 登录拦截器
+ * Login interceptor
  *
- * @author CHEN
+ * @author hmdp
  * @date 2022/10/07
  */
 public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        //获取用户
+        //Get user
         if (UserHolder.getUser() == null) {
-            //不存在用户 拦截
+            //No user, reject request
             response.setStatus(401);
             return false;
         }
-        //存在用户放行
+        //User present, allow request
         return true;
     }
 

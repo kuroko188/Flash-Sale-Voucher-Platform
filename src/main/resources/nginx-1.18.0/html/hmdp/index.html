@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>HMDP</title>
+  <link rel="stylesheet" href="./css/element.css">
+  <link href="./css/main.css" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #f7f5f5; }
+    .page { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 24px 16px; box-sizing: border-box; }
+    .title { font-size: 22px; font-weight: bold; color: #333; margin-bottom: 8px; }
+    .desc { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 32px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+    .user { display: flex; align-items: center; margin-bottom: 20px; }
+    .user img { width: 48px; height: 48px; border-radius: 50%; margin-right: 12px; object-fit: cover; }
+    .user-name { font-size: 16px; font-weight: bold; color: #333; }
+    .btn { width: 100%; margin-top: 12px; }
+  </style>
+</head>
+<body>
+<div id="app" class="page">
+  <div class="title">HMDP</div>
+  <div class="desc">Demo: login and seckill voucher only</div>
+  <div class="card">
+    <template v-if="user">
+      <div class="user">
+        <img :src="user.icon || '/imgs/icons/default-icon.png'" alt="">
+        <div class="user-name">{{ user.nickName }}</div>
+      </div>
+      <el-button type="warning" class="btn" @click="goSeckill">Grab voucher</el-button>
+      <el-button class="btn" @click="logout">Log out</el-button>
+    </template>
+    <template v-else>
+      <div class="desc" style="margin-bottom: 16px;">Please log in before joining seckill</div>
+      <el-button type="warning" class="btn" @click="goLogin">Log in with phone</el-button>
+    </template>
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    data: { user: null },
+    created() {
+      if (sessionStorage.getItem('token')) {
+        this.loadUser();
+      }
+    },
+    methods: {
+      loadUser() {
+        axios.get('/user/me')
+          .then(({ data }) => { this.user = data; })
+          .catch(() => {
+            sessionStorage.removeItem('token');
+            this.user = null;
+          });
+      },
+      goLogin() { location.href = '/login.html'; },
+      goSeckill() { location.href = '/seckill.html'; },
+      logout() {
+        sessionStorage.removeItem('token');
+        this.user = null;
+        this.$message.success('Logged out');
+      }
+    }
+  });
+</script>
+</body>
+</html>

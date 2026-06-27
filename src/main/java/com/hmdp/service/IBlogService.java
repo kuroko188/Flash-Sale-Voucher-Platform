@@ -6,24 +6,21 @@ import com.hmdp.entity.Blog;
 
 /**
  * <p>
- *  服务类
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 public interface IBlogService extends IService<Blog> {
 
     /**
-     * 查询热门博客
      *
-     * @param current 当前
+   * @param current
      * @return {@link Result}
      */
     Result queryHotBlog(Integer current);
 
     /**
-     * 通过id查询博客
      *
      * @param id id
      * @return {@link Result}
@@ -31,7 +28,6 @@ public interface IBlogService extends IService<Blog> {
     Result queryBlogById(Long id);
 
     /**
-     * 点赞博客
      *
      * @param id id
      * @return {@link Result}
@@ -39,7 +35,6 @@ public interface IBlogService extends IService<Blog> {
     Result likeBlog(Long id);
 
     /**
-     * 查询博客点赞排行榜
      *
      * @param id id
      * @return {@link Result}
@@ -47,18 +42,16 @@ public interface IBlogService extends IService<Blog> {
     Result queryBlogLikesById(Long id);
 
     /**
-     * 保存博客
      *
-     * @param blog 博客
+   * @param blog
      * @return {@link Result}
      */
     Result saveBlog(Blog blog);
 
     /**
-     * 查询博客遵循
      *
-     * @param max    马克斯
-     * @param offset 抵消
+   * @param max
+   * @param offset
      * @return {@link Result}
      */
     Result queryBlogOfFollow(Long max, Integer offset);

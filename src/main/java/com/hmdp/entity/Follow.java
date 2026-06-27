@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @Data
@@ -27,23 +27,21 @@ public class Follow implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键
+     * Primary key
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     /**
-     * 用户id
+     * User id
      */
     private Long userId;
 
     /**
-     * 关联的用户id
      */
     private Long followUserId;
 
     /**
-     * 创建时间
      */
     private LocalDateTime createTime;
 

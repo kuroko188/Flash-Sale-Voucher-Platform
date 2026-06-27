@@ -17,10 +17,10 @@ import java.util.List;
 
 /**
  * <p>
- * 前端控制器
+ * REST controller
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @RestController
@@ -37,18 +37,17 @@ public class BlogController {
 
     @PutMapping("/like/{id}")
     public Result likeBlog(@PathVariable("id") Long id) {
-        // 修改点赞数量
         return blogService.likeBlog(id);
     }
 
     @GetMapping("/of/me")
     public Result queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
-        // 获取登录用户
+        // Get logged-in user
         UserDTO user = UserHolder.getUser();
-        // 根据用户查询
+        // Query by user
         Page<Blog> page = blogService.query()
                 .eq("user_id", user.getId()).page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
-        // 获取当前页数据
+        // Load current page
         List<Blog> records = page.getRecords();
         return Result.ok(records);
     }

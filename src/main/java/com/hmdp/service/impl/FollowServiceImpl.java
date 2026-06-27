@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 
 /**
  * <p>
- *  服务实现类
+ *  Service implementation
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @Service
@@ -38,11 +38,8 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     @Override
     public Result follow(Long followUserId, Boolean isFollow) {
-        //获取登陆用户
         Long id = UserHolder.getUser().getId();
-        //判断是关注还是取关
         if (isFollow) {
-            //关注 新增数据
             Follow follow=new Follow();
             follow.setFollowUserId(followUserId);
             follow.setUserId(id);
@@ -52,7 +49,6 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
                 stringRedisTemplate.opsForSet().add(key,followUserId.toString());
             }
         }else {
-            //取关 删除
             boolean isSuccess = remove(new LambdaQueryWrapper<Follow>()
                     .eq(Follow::getUserId, id)
                     .eq(Follow::getFollowUserId, followUserId)
@@ -67,9 +63,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     @Override
     public Result isFollow(Long followUserId) {
-        //获取登陆用户
         Long id = UserHolder.getUser().getId();
-        //查询是否关注
         Long count = lambdaQuery()
                 .eq(Follow::getUserId, id)
                 .eq(Follow::getFollowUserId, followUserId)
@@ -79,18 +73,15 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     @Override
     public Result followCommons(Long id) {
-        //获取登陆用户
         Long userId = UserHolder.getUser().getId();
         String key="follows:"+userId;
-        //求交集
         String key2="follows:"+id;
         Set<String> intersect = stringRedisTemplate.opsForSet().intersect(key, key2);
         if (intersect==null||intersect.isEmpty()) {
             return Result.ok(Collections.emptyList());
         }
-        //解析出id
         List<Long> ids = intersect.stream().map(Long::valueOf).collect(Collectors.toList());
-        //查询用户
+        //Query user
         List<User> users = userService.listByIds(ids);
         List<UserDTO> collect = users.stream()
                 .map(user -> BeanUtil.copyProperties(user, UserDTO.class))

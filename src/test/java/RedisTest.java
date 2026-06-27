@@ -46,7 +46,7 @@ public class RedisTest {
 
     @Test
     public void testSaveShop() throws InterruptedException {
-        //预热
+        //Warm up cache
         List<Shop> shopList = shopService.list();
         for (Shop shop : shopList) {
             cacheClient.setWithLogicalExpire(CACHE_SHOP_KEY + shop.getId(), shop, 30L, TimeUnit.MINUTES);
@@ -60,7 +60,7 @@ public class RedisTest {
         Runnable task = () -> {
             for (int i = 0; i < 100; i++) {
                 Long id = redisIdWorker.nextId("order");
-                //println有同步锁 会增加耗时
+                //println synchronization adds overhead
                 System.out.println("id:" + id);
             }
             countDownLatch.countDown();
@@ -71,23 +71,23 @@ public class RedisTest {
         }
         countDownLatch.await();
         long end = System.currentTimeMillis();
-        System.out.println("耗时：" + (end - begin));
+        System.out.println("Elapsed: " + (end - begin));
     }
 
     @Test
     public void testLoadShopData() {
         //查询店铺信息
         List<Shop> list = shopService.list();
-        //分组
+        //Group by type
         Map<Long, List<Shop>> map = list.stream().collect(Collectors.groupingBy(Shop::getTypeId));
-        //分批写入
+        //Write in batches
         for (Map.Entry<Long, List<Shop>> longListEntry : map.entrySet()) {
-            //获取类型id
+            //Get type id
             Long typeId = longListEntry.getKey();
-            //获取店铺集合
+            //Get shop list
             List<Shop> value = longListEntry.getValue();
             List<RedisGeoCommands.GeoLocation<String>> locations=new ArrayList<>(value.size());
-            //写入redis
+            //Write to Redis
             String key = SHOP_GEO_KEY + typeId;
             /*for (Shop shop : value) {
                 Double x = shop.getX();

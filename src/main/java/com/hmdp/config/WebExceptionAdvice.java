@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * @author CHEN
+ * @author hmdp
  * @date 2022/10/07
  */
 @Slf4j
@@ -16,6 +16,6 @@ public class WebExceptionAdvice {
     @ExceptionHandler(RuntimeException.class)
     public Result handleRuntimeException(RuntimeException e) {
         log.error(e.toString(), e);
-        return Result.fail("服务器异常");
+        return Result.fail("Server error");
     }
 }

@@ -9,41 +9,37 @@ import javax.servlet.http.HttpSession;
 
 /**
  * <p>
- *  服务类
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 public interface IUserService extends IService<User> {
 
     /**
-     * 发送验证码
+     * Send verification code
      *
-     * @param phone   手机号码
-     * @param session 会话
+     * @param phone   Phone number
+   * @param session
      * @return {@link Result}
      */
     Result sendCode(String phone, HttpSession session);
 
     /**
-     * 登录
      *
-     * @param loginForm 登录表单
-     * @param session   会话
+   * @param loginForm
+   * @param session
      * @return {@link Result}
      */
     Result login(LoginFormDTO loginForm, HttpSession session);
 
     /**
-     * 签到
      *
      * @return {@link Result}
      */
     Result sign();
 
     /**
-     * 统计连续签到
      *
      * @return {@link Result}
      */

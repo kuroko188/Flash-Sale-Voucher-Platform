@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>Seckill</title>
+  <link rel="stylesheet" href="./css/element.css">
+  <link href="./css/main.css" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #f7f5f5; }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: #fff; border-bottom: 2px solid #f63;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .header-title { font-size: 18px; font-weight: bold; color: #333; }
+    .back { color: #f63; font-size: 20px; cursor: pointer; }
+    .page { max-width: 480px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+    .voucher {
+      background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .voucher-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; }
+    .voucher-sub { color: #888; font-size: 13px; margin-bottom: 12px; }
+    .voucher-row { display: flex; justify-content: space-between; align-items: center; }
+    .price { color: #f63; font-size: 22px; font-weight: bold; }
+    .price small { font-size: 13px; color: #999; font-weight: normal; }
+    .stock { margin-top: 10px; line-height: 1.2; }
+    .stock-num {
+      font-size: 32px;
+      font-weight: 800;
+      color: #f63;
+      margin-right: 6px;
+    }
+    .stock-label { font-size: 14px; color: #888; font-weight: 600; }
+    .time { color: #f63; font-size: 12px; margin-top: 4px; }
+    .empty { text-align: center; color: #999; padding: 40px 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <span class="back" @click="goBack"><i class="el-icon-arrow-left"></i></span>
+    <span class="header-title">Seckill vouchers</span>
+    <span style="width: 20px;"></span>
+  </div>
+  <div class="page">
+    <div v-if="loading" class="empty">Loading...</div>
+    <div v-else-if="vouchers.length === 0" class="empty">No seckill vouchers</div>
+    <div v-for="v in vouchers" :key="v.id" class="voucher">
+      <div class="voucher-title">{{ v.title }}</div>
+      <div class="voucher-sub">{{ v.subTitle }}</div>
+      <div class="voucher-row">
+        <div>
+          <div class="price">${{ formatPrice(v.payValue) }} <small>worth ${{ formatPrice(v.actualValue) }}</small></div>
+          <div class="stock"><span class="stock-num">{{ v.stock }}</span><span class="stock-label">left</span></div>
+          <div class="time">{{ formatTime(v) }}</div>
+        </div>
+        <el-button
+          type="warning"
+          :disabled="isNotBegin(v) || isEnd(v) || v.stock < 1"
+          :loading="seckilling === v.id"
+          @click="seckill(v)">
+          {{ btnText(v) }}
+        </el-button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script>
+  const SHOP_ID = 1;
+
+  new Vue({
+    el: '#app',
+    data: {
+      vouchers: [],
+      loading: true,
+      seckilling: null
+    },
+    created() {
+      if (!sessionStorage.getItem('token')) {
+        location.href = '/login.html';
+        return;
+      }
+      this.loadVouchers();
+    },
+    methods: {
+      goBack() { location.href = '/index.html'; },
+      loadVouchers() {
+        axios.get('/voucher/list/' + SHOP_ID)
+          .then(({ data }) => {
+            this.vouchers = (data || []).filter(v => v.type === 1);
+          })
+          .catch(err => this.$message.error(err))
+          .finally(() => { this.loading = false; });
+      },
+      formatPrice(val) {
+        return util.formatPrice(val);
+      },
+      formatTime(v) {
+        const b = new Date(v.beginTime);
+        const e = new Date(v.endTime);
+        const pad = n => n < 10 ? '0' + n : n;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[b.getMonth()] + ' ' + b.getDate() + ', '
+          + b.getHours() + ':' + pad(b.getMinutes())
+          + ' ~ ' + e.getHours() + ':' + pad(e.getMinutes());
+      },
+      isNotBegin(v) {
+        return new Date(v.beginTime).getTime() > Date.now();
+      },
+      isEnd(v) {
+        return new Date(v.endTime).getTime() < Date.now();
+      },
+      btnText(v) {
+        if (this.isNotBegin(v)) return 'Not started';
+        if (this.isEnd(v)) return 'Ended';
+        if (v.stock < 1) return 'Sold out';
+        return 'Buy now';
+      },
+      seckill(v) {
+        if (this.isNotBegin(v) || this.isEnd(v) || v.stock < 1) return;
+        this.seckilling = v.id;
+        axios.post('/voucher-order/seckill/' + v.id)
+          .then(({ data }) => {
+            this.$message.success('Success! Order ID: ' + data);
+            v.stock = Math.max(0, v.stock - 1);
+          })
+          .catch(err => this.$message.error(err))
+          .finally(() => { this.seckilling = null; });
+      }
+    }
+  });
+</script>
+</body>
+</html>

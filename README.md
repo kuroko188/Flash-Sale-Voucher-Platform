@@ -1,31 +1,59 @@
-# 代码使用说明(本项目来自b站[黑马程序员](https://space.bilibili.com/37974444)[redis教程](https://www.bilibili.com/video/BV1cr4y1671t)，仅供参考)
+# Flash-Sale-Voucher-Platform
 
-项目代码包含2个分支：
-- master : 主分支，包含完整版代码，作为大家的编码参考使用
-- init (包含前端资源): 初始化分支，实战篇的初始代码，建议大家以这个分支作为自己开发的基础代码
-  - 前端资源位于init分支src/main/resources/nginx-1.18.0下
+A simplified flash-sale voucher demo built with Spring Boot, Redis, and MySQL.
 
-视频地址:
-- [黑马程序员Redis入门到实战教程，深度透析redis底层原理+redis分布式锁+企业解决方案+redis实战](https://www.bilibili.com/video/BV1cr4y1671t)
-- [https://www.bilibili.com/video/BV1cr4y1671t](https://www.bilibili.com/video/BV1cr4y1671t)
-  - P24起 实战篇
+## Features
 
-## 1.下载
-克隆完整项目
-```git
-git clone https://github.com/cs001020/hmdp.git
-```
-切换分支
-```git
-git checkout init
+- Phone login with verification code (demo code logged in browser console)
+- Seckill voucher listing and purchase
+- Redis Stream order processing
+- One order per user per voucher
+
+## Tech Stack
+
+- Java 8+ / Spring Boot 2.7
+- MySQL 5.7
+- Redis 6+
+- Vue + Element UI (static frontend)
+
+## Quick Start
+
+1. Start MySQL and Redis (Docker example):
+
+```bash
+docker start mysql57 redis
 ```
 
-## 2.常见问题
-部分同学直接使用了master分支项目来启动，控制台会一直报错:
+2. Import database:
+
+```bash
+mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS hmdp;"
+mysql -h127.0.0.1 -uroot -proot hmdp < hmdp.sql
+mysql -h127.0.0.1 -uroot -proot hmdp < scripts/seed-english-data.sql
+docker exec redis redis-cli -a root XGROUP CREATE stream.orders g1 $ MKSTREAM
 ```
-NOGROUP No such key 'stream.orders' or consumer group 'g1' in XREADGROUP with GROUP option
+
+3. Run the app:
+
+```bash
+mvn spring-boot:run
 ```
-这是因为我们完整版代码会尝试访问Redis，连接Redis的Stream。建议同学切换到init分支来开发，如果一定要运行master分支，请先在Redis运行一下命令：
-```text
-XGROUP CREATE stream.orders g1 $ MKSTREAM
-```
+
+4. Open in browser:
+
+- http://127.0.0.1:8081/index.html
+- http://127.0.0.1:8081/login.html
+- http://127.0.0.1:8081/seckill.html
+
+## Test Accounts
+
+| Phone | Nickname |
+|-------|----------|
+| 13686869696 | Alex Fisher |
+| 13838411438 | Emma Lee |
+
+After clicking **Send code**, open DevTools Console (`F12`) to see the verification code.
+
+## License
+
+Educational demo project.

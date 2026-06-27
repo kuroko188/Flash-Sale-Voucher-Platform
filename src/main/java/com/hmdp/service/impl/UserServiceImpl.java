@@ -36,10 +36,10 @@ import static com.hmdp.utils.SystemConstants.*;
 
 /**
  * <p>
- * 服务实现类
+ * Service implementation
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @Service
@@ -50,94 +50,93 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result sendCode(String phone, HttpSession session) {
-        //校验手机号
+        //Validate phone number
         if (RegexUtils.isPhoneInvalid(phone)) {
-            //手机号不符合
-            return Result.fail("手机号格式错误");
+            //Invalid phone number
+            return Result.fail("Invalid phone number");
         }
-        //手机号符合,生成验证码
+        //Valid phone, generate verification code
         String code = RandomUtil.randomNumbers(6);
-        /*//保存验证码到session
+        /*//Save code to session
         session.setAttribute("code", code);*/
-        //保存验证码到redis
+        //Save code to Redis
         stringRedisTemplate.opsForValue().set(LOGIN_CODE_KEY + phone, code, LOGIN_CODE_TTL, TimeUnit.MINUTES);
-        //发送验证码
-        log.debug("发送验证码成功，验证码：{}", code);
-        //返回ok
-        return Result.ok();
+        //Send verification code
+        log.debug("Verification code sent: {}", code);
+        return Result.ok(code);
     }
 
     @Override
     public Result login(LoginFormDTO loginForm, HttpSession session) {
-        //校验手机号
+        //Validate phone number
         String phone = loginForm.getPhone();
         if (RegexUtils.isPhoneInvalid(phone)) {
-            //手机号不符合
-            return Result.fail("手机号格式错误");
+            //Invalid phone number
+            return Result.fail("Invalid phone number");
         }
-        //从redis中获取验证码 校验验证码
+        //Load code from Redis and validate
         /*  Object cacheCode = session.getAttribute("code");*/
         String cacheCode = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + phone);
         String code = loginForm.getCode();
         if (cacheCode == null || !cacheCode.equals(code)) {
-            //不一致 报错
-            return Result.fail("验证码错误");
+            //Mismatch, return error
+            return Result.fail("Invalid verification code");
         }
-        //一致 根据手机号查询用户
+        //Match, load user by phone
         User user = baseMapper
                 .selectOne(new LambdaQueryWrapper<User>()
                         .eq(User::getPhone, phone));
-        //判断用户是否存在
+        //Check whether user exists
         if (user == null) {
-            //不存在 创建新用户
+            //Create user if missing
             user = createUserWithPhone(phone);
         }
-        /*//保存用户信息到session
+        /*//Save user to session
         session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));*/
-        //生成token
+        //Generate token
         String token = UUID.randomUUID().toString(true);
-        //userDTO转map
+        //Convert UserDTO to map
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         Map<String, Object> map = BeanUtil.beanToMap(userDTO, new HashMap<>()
                 , CopyOptions.create().setIgnoreNullValue(true)
                         .setFieldValueEditor(
                                 (name, value) -> value.toString()
                         ));
-        //保存用户信息到redis
+        //Save user to Redis
         stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token, map);
-        //设置过期时间
+        //Set TTL
         stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL, TimeUnit.MINUTES);
         return Result.ok(token);
     }
 
     @Override
     public Result sign() {
-        //获取当前登陆用户
+        //Get current user
         Long id = UserHolder.getUser().getId();
-        //获取日期
+        //Get current date
         LocalDateTime now = LocalDateTime.now();
-        //拼接key
+        //Build Redis key
         String yyyyMM = now.format(DateTimeFormatter.ofPattern("yyyy:MM:"));
         String key = USER_SIGN_KEY +yyyyMM+ id;
-        //获取今天是本月的第几天
+        //Get day of month
         int dayOfMonth = now.getDayOfMonth();
-        //写了redis
+        //Write to Redis
         stringRedisTemplate.opsForValue().setBit(key,dayOfMonth-1,true);
         return Result.ok();
     }
 
     @Override
     public Result signCount() {
-        //获取当前登陆用户
+        //Get current user
         Long id = UserHolder.getUser().getId();
-        //获取日期
+        //Get current date
         LocalDateTime now = LocalDateTime.now();
-        //拼接key
+        //Build Redis key
         String yyyyMM = now.format(DateTimeFormatter.ofPattern("yyyy:MM:"));
         String key = USER_SIGN_KEY +yyyyMM+ id;
-        //获取今天是本月的第几天
+        //Get day of month
         int dayOfMonth = now.getDayOfMonth();
-        //获取截至本月今天的所有签到记录
+        //Load sign-in bits for this month
         List<Long> result = stringRedisTemplate.opsForValue().bitField(key
                 , BitFieldSubCommands
                         .create()
@@ -152,9 +151,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (num==null||num==0){
             return Result.ok(0);
         }
-        //转二进制字符串
+        //Convert to binary string
         String binaryString = Long.toBinaryString(num);
-        //计算连续签到天数
+        //Count consecutive sign-in days
         int count=0;
         for (int i = binaryString.length()-1; i >=0; i--) {
             if (binaryString.charAt(i)=='1'){
@@ -164,14 +163,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 break;
             }
         }
-        //返回
+        //Return
         return Result.ok(count);
     }
 
     private User createUserWithPhone(String phone) {
         User user = new User();
         user.setPhone(phone);
-        //生成随机昵称
+        //Generate random nickname
         user.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
         baseMapper.insert(user);
         return user;

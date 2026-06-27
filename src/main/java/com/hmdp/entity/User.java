@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @Data
@@ -27,38 +27,36 @@ public class User implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键
+     * Primary key
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     /**
-     * 手机号码
+     * Phone number
      */
     private String phone;
 
     /**
-     * 密码，加密存储
+     * Password (hashed)
      */
     private String password;
 
     /**
-     * 昵称，默认是随机字符
+     * Nickname
      */
     private String nickName;
 
     /**
-     * 用户头像
+     * Avatar
      */
     private String icon = "";
 
     /**
-     * 创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
      */
     private LocalDateTime updateTime;
 

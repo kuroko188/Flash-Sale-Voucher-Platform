@@ -18,10 +18,10 @@ import java.util.List;
 
 /**
  * <p>
- *  服务实现类
+ *  Service implementation
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @Service
@@ -32,9 +32,9 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
     @Override
     public Result getTypeList() {
         String typeKey= RedisConstants.CACHE_TYPE_KEY;
-        //从redis中查询
+        //Query from Redis
         Long typeListSize = stringRedisTemplate.opsForList().size(typeKey);
-        //redis存在数据
+        //Data exists in Redis
         if (typeListSize!=null&&typeListSize!=0){
             List<String> typeJsonList = stringRedisTemplate.opsForList().range(typeKey, 0, typeListSize-1);
             List<ShopType> typeList=new ArrayList<>();
@@ -43,20 +43,20 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
             }
             return Result.ok(typeList);
         }
-        //redis不存在数据 查询数据库
+        //Cache miss, query database
         List<ShopType> typeList = query().orderByAsc("sort").list();
         if (typeList==null){
-            //数据库不存在数据
-            return Result.fail("发生错误");
+            //No data in database
+            return Result.fail("Something went wrong");
         }
-        //转换
+        //Convert
         List<String> typeJsonList=new ArrayList<>();
         for (ShopType shopType : typeList) {
             typeJsonList.add(JSONUtil.toJsonStr(shopType));
         }
-        //数据库存在数据 写入redis
+        //Write database result to Redis
         stringRedisTemplate.opsForList().rightPushAll(typeKey,typeJsonList);
-        //返回数据
+        //Return data
         return Result.ok(typeList);
     }
 }

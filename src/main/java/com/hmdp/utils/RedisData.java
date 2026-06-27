@@ -5,9 +5,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Redis数据
+ * RedisPayload
  *
- * @author CHEN
+ * @author hmdp
  * @date 2022/10/08
  */
 @Data

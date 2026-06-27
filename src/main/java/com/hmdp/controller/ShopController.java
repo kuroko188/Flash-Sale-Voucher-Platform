@@ -13,10 +13,10 @@ import javax.annotation.Resource;
 
 /**
  * <p>
- * 前端控制器
+ * REST controller
  * </p>
  *
- * @author 虎哥
+ * @author hmdp
  * @since 2021-12-22
  */
 @RestController
@@ -27,9 +27,9 @@ public class ShopController {
     public IShopService shopService;
 
     /**
-     * 根据id查询商铺信息
-     * @param id 商铺id
-     * @return 商铺详情数据
+     * Get shop by id
+     * @param id Shop id
+   * @return Payload
      */
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
@@ -37,33 +37,31 @@ public class ShopController {
     }
 
     /**
-     * 新增商铺信息
-     * @param shop 商铺数据
-     * @return 商铺id
+     * Create shop
+   * @param shop Payload
+     * @return Shop id
      */
     @PostMapping
     public Result saveShop(@RequestBody Shop shop) {
-        // 写入数据库
+        // Persist to database
         shopService.save(shop);
         return Result.ok();
     }
 
     /**
-     * 更新商铺信息
-     * @param shop 商铺数据
-     * @return 无
+     * Update shop
+   * @param shop Payload
      */
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
-        // 写入数据库
+        // Persist to database
         return shopService.update(shop);
     }
 
     /**
-     * 根据商铺类型分页查询商铺信息
-     * @param typeId 商铺类型
-     * @param current 页码
-     * @return 商铺列表
+     * List shops by type
+   * @param typeId
+   * @param current
      */
     @GetMapping("/of/type")
     public Result queryShopByType(
@@ -76,21 +74,19 @@ public class ShopController {
     }
 
     /**
-     * 根据商铺名称关键字分页查询商铺信息
-     * @param name 商铺名称关键字
-     * @param current 页码
-     * @return 商铺列表
+   * @param name Shop namekey
+   * @param current
      */
     @GetMapping("/of/name")
     public Result queryShopByName(
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "current", defaultValue = "1") Integer current
     ) {
-        // 根据类型分页查询
+        // Paginate by type
         Page<Shop> page = shopService.query()
                 .like(StrUtil.isNotBlank(name), "name", name)
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
-        // 返回数据
+        // Return data
         return Result.ok(page.getRecords());
     }
 }

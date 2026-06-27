@@ -20,9 +20,9 @@ import java.util.function.Function;
 import static com.hmdp.utils.RedisConstants.*;
 
 /**
- * redis工具
+ * Redis cache helper
  *
- * @author CHEN
+ * @author hmdp
  * @date 2022/10/08
  */
 @Slf4j
@@ -36,43 +36,41 @@ public class CacheClient {
     }
 
     /**
-     * 将任意对象序列化成json存入redis
+     * Serialize object to JSON in Redis
      *
-     * @param key   关键
-     * @param value 价值
-     * @param time  时间
-     * @param unit  单位
+     * @param key   key
+     * @param value value
+     * @param time  TTL
+     * @param unit  unit
      */
     public void set(String key, Object value, Long time, TimeUnit unit) {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value), time, unit);
     }
 
     /**
-     * 将任意对象序列化成json存入redis 并且携带逻辑过期时间
      *
-     * @param key   关键
-     * @param value 价值
-     * @param time  时间
-     * @param unit  单位
+     * @param key   key
+     * @param value value
+     * @param time  TTL
+     * @param unit  unit
      */
     public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit) {
-        //封装逻辑过期时间
+        //Wrap with logical expirationTTL
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(unit.toSeconds(time)));
-        //存入redis
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
     }
 
     /**
-     * 设置空值解决缓存穿透
+     * Cache null values to prevent penetration
      *
-     * @param keyPrefix  关键前缀
+   * @param keyPrefix key
      * @param id         id
-     * @param type       类型
-     * @param dbFallback db回退
-     * @param time       时间
-     * @param unit       单位
+   * @param type
+     * @param dbFallback DB fallback
+     * @param time       TTL
+     * @param unit       unit
      * @return {@link R}
      */
     public <R, ID> R queryWithPassThrough(
@@ -83,33 +81,31 @@ public class CacheClient {
             , Long time
             , TimeUnit unit) {
         String key = keyPrefix + id;
-        //从redis中查询
+        //Query from Redis
         String json = stringRedisTemplate.opsForValue().get(key);
-        //判断是否存在
+        //Check existence
         if (StringUtils.isNotEmpty(json)) {
-            //存在直接返回
             return JSONUtil.toBean(json, type);
         }
-        //判断空值
+        //Check null placeholder
         if ("".equals(json)) {
             return null;
         }
-        //不存在 查询数据库
+        //Cache miss, query DB
         R r = dbFallback.apply(id);
         if (r == null) {
-            //redis写入空值
+            //Write null placeholder
             this.set(key, "", CACHE_NULL_TTL, TimeUnit.SECONDS);
-            //数据库不存在 返回错误
             return null;
         }
-        //数据库存在 写入redis
+        //Write DB result to Redis
         this.set(key, r, time, unit);
-        //返回
+        //Return
         return r;
     }
 
     /**
-     * 逻辑过期解决缓存击穿
+     * Logical expiration against cache breakdown
      *
      * @param id id
      * @return {@link Shop}
@@ -121,57 +117,52 @@ public class CacheClient {
             , Long time
             , TimeUnit unit) {
         String key = keyPrefix + id;
-        //从redis中查询
+        //Query from Redis
         String json = stringRedisTemplate.opsForValue().get(key);
-        //判断是否存在
+        //Check existence
         if (StringUtils.isEmpty(json)) {
-            //不存在返回空
             return null;
         }
-        //命中 反序列化
+        //Cache hit, deserialize
         RedisData redisData = JSONUtil.toBean(json, RedisData.class);
         JSONObject jsonObject = (JSONObject) redisData.getData();
         R r = BeanUtil.toBean(jsonObject, type);
         LocalDateTime expireTime = redisData.getExpireTime();
-        //判断是否过期
+        //Check logical expiration
         if (expireTime.isAfter(LocalDateTime.now())) {
-            //未过期 直接返回
             return r;
         }
-        //已过期
-        //获取互斥锁
+        //Expired
         String lockKey = LOCK_SHOP_KEY + id;
         boolean flag = tryLock(lockKey);
-        //是否获取锁成功
         if (flag) {
-            //成功 异步重建
+            //Rebuild cache asynchronously
             CACHE_REBUILD_EXECUTOR.submit(() -> {
                 try {
-                    //查询数据库
+                    //Query database
                     R newR = dbFallback.apply(id);
-                    //写入redis
+                    //Write to Redis
                     this.setWithLogicalExpire(key,newR,time,unit);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
-                    //释放锁
+                    //Release lock
                     unLock(lockKey);
                 }
             });
         }
-        //返回过期商铺信息
         return r;
     }
 
     /**
-     * 简易线程池
+     * Cache rebuild thread pool
      */
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
     /**
-     * 获取锁
+     * Acquire lock
      *
-     * @param key 关键
+     * @param key key
      * @return boolean
      */
     private boolean tryLock(String key) {
@@ -180,9 +171,9 @@ public class CacheClient {
     }
 
     /**
-     * 释放锁
+     * Release lock
      *
-     * @param key 关键
+     * @param key key
      */
     private void unLock(String key) {
         stringRedisTemplate.delete(key);

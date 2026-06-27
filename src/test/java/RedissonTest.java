@@ -25,15 +25,15 @@ public class RedissonTest {
     public void method1() throws InterruptedException {
         boolean isLock = rLock.tryLock(1L, TimeUnit.SECONDS);
         if (!isLock){
-            log.info("获取锁失败--1");
+            log.info("Acquire lock失败--1");
         }
         try {
-            log.info("获取锁成功--1");
+            log.info("Acquire lock成功--1");
             method2();
             log.info("执行业务--1");
         }
         finally {
-            log.info("准备释放锁--1");
+            log.info("准备Release lock--1");
             rLock.unlock();
         }
     }
@@ -41,14 +41,14 @@ public class RedissonTest {
     public void method2(){
         boolean isLock = rLock.tryLock();
         if (!isLock){
-            log.info("获取锁失败--2");
+            log.info("Acquire lock失败--2");
         }
         try {
-            log.info("获取锁成功--2");
+            log.info("Acquire lock成功--2");
             log.info("执行业务--2");
         }
         finally {
-            log.info("准备释放锁--2");
+            log.info("准备Release lock--2");
             rLock.unlock();
         }
     }

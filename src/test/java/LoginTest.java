@@ -32,7 +32,7 @@ public class LoginTest {
     private StringRedisTemplate stringRedisTemplate;
 
     /**
-     * 生成1000名用户
+     * Generate 1000 users
      */
     @Test
     public void testGenerateUser(){
@@ -41,15 +41,15 @@ public class LoginTest {
             User user = new User();
             user.setPhone(phone.toString());
             phone++;
-            //生成随机昵称
+            //Generate random nickname
             user.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
             userMapper.insert(user);
         }
     }
 
     /**
-     * 登陆1000名用户 并将token进行存储 用于秒杀优惠券一人一单测试
-     * 使用时 注意修改需要登陆的用户id的访问 以及token文件输出路径
+     * Login users and store tokens for seckill tests
+     * Adjust user id filter and token output path before use
      *
      * @throws IOException ioexception
      */
@@ -64,16 +64,16 @@ public class LoginTest {
             String token = UUID.randomUUID().toString(true);
             fileOutputStream.write(token.getBytes());
             fileOutputStream.write("\r\n".getBytes());
-            //userDTO转map
+            //Convert UserDTO to map
             UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
             Map<String, Object> map = BeanUtil.beanToMap(userDTO, new HashMap<>()
                     , CopyOptions.create().setIgnoreNullValue(true)
                             .setFieldValueEditor(
                                     (name, value) -> value.toString()
                             ));
-            //保存用户信息到redis
+            //Save user to Redis
             stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token, map);
-            //设置过期时间
+            //Set TTL
             stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL, TimeUnit.MINUTES);
         }
     }
