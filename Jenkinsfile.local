@@ -102,7 +102,8 @@ pipeline {
                               --cluster ${ECS_CLUSTER} \
                               --service ${ECS_SERVICE} \
                               --task-family ${ECS_TASK_FAMILY} \
-                              --image ${IMAGE_URI}
+                              --image ${IMAGE_URI} \
+                              --from-terraform
                         '''
                     } else {
                         sh '''

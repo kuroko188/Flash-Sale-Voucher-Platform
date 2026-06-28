@@ -74,6 +74,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @PostConstruct
     private void init() {
         running = true;
+        warmSeckillStock();
         ensureStreamConsumerGroup();
         SECKILL_ORDER_EXECUTOR.submit(() -> {
             while (running && !Thread.currentThread().isInterrupted()) {
@@ -122,6 +123,17 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 }
             }
         });
+    }
+
+    private void warmSeckillStock() {
+        List<SeckillVoucher> vouchers = seckillVoucherService.list();
+        for (SeckillVoucher voucher : vouchers) {
+            stringRedisTemplate.opsForValue().set(
+                    SECKILL_STOCK_KEY + voucher.getVoucherId(),
+                    voucher.getStock().toString()
+            );
+        }
+        log.info("Warmed seckill stock cache for {} vouchers", vouchers.size());
     }
 
     private void ensureStreamConsumerGroup() {

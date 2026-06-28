@@ -1,0 +1,13 @@
+aws_region   = "us-east-1"
+rds_password = "FlashSale123!"
+
+# Optional: restrict MySQL import to your IP instead of 0.0.0.0/0
+# mysql_admin_cidr = "1.2.3.4/32"
+
+# First apply before image exists in ECR:
+# create_ecs_service = false
+
+# IAM: jenkins-deploy-user cannot create roles. Create ecsInstanceRole once in Console:
+# ECS -> Clusters -> Create cluster -> EC2 -> Create role (or IAM -> Roles -> ecsInstanceRole)
+# create_ecs_instance_profile = false
+# ecs_instance_profile_name   = "ecsInstanceRole"
